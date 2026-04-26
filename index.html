@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إيجاري | Ejaari</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --bg: #0c0f14;
+  --card: #1e2535;
+  --gold: #c9a84c;
+  --text: #e8eaf0;
+  --text2: #9aa3b8;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'Tajawal', sans-serif; direction: rtl; }
+nav { position: fixed; top: 0; width: 100%; z-index: 1000; background: rgba(12,15,20,0.95); backdrop-filter: blur(20px); padding: 0 32px; height: 70px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(201,168,76,0.15); }
+.nav-item { cursor: pointer; padding: 8px 16px; color: var(--text2); border-radius: 8px; transition: all 0.2s; border: none; background: none; font-size: 14px; font-family: inherit; }
+.nav-item:hover { color: var(--gold); }
+.btn { padding: 9px 22px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; font-size: 14px; font-family: inherit; transition: all 0.2s; }
+.btn-primary { background: var(--gold); color: var(--bg); }
+.btn-primary:hover { background: #e8c46a; }
+.btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
+.page { display: none; padding-top: 90px; min-height: 100vh; }
+.page.active { display: block; }
+.section { padding: 40px 32px; max-width: 1200px; margin: 0 auto; }
+.form-group { margin: 16px 0; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(201,168,76,0.2); background: var(--card); color: var(--text); font-family: inherit; font-size: 14px; }
+.form-group label { display: block; margin-bottom: 8px; color: var(--text2); font-size: 13px; }
+.props-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.prop-card { background: var(--card); border: 1px solid rgba(201,168,76,0.15); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s; }
+.prop-card:hover { transform: translateY(-4px); border-color: var(--gold); }
+.prop-card h3 { color: var(--gold); margin-bottom: 8px; }
+.prop-card p { color: var(--text2); font-size: 14px; margin: 4px 0; }
+#map { width: 100%; height: 400px; border-radius: 16px; margin-top: 20px; }
+.auth-form { max-width: 400px; margin: 40px auto; background: var(--card); padding: 32px; border-radius: 20px; }
+.user-info { display: none; align-items: center; gap: 16px; }
+.user-avatar { width: 40px; height: 40px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--bg); font-weight: 700; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 20px 0; }
+.stat-card { background: var(--card); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(201,168,76,0.15); }
+.stat-num { font-size: 24px; font-weight: 900; color: var(--gold); }
+.stat-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+.modal.open { display: flex; }
+.modal-content { background: var(--card); padding: 32px; border-radius: 20px; max-width: 600px; width: 90%; }
+.close-btn { float: left; font-size: 28px; cursor: pointer; color: var(--text2); }
+@media (max-width: 768px) {
+  nav { padding: 0 16px; }
+  .page { padding-top: 70px; }
+  .section { padding: 20px 16px; }
+  .props-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav>
+  <div style="font-size: 22px; font-weight: 700; cursor: pointer;" onclick="navigate('home')">
+    <span style="color: var(--gold);">إيجاري</span> | Ejaari
+  </div>
+  <div>
+    <button class="nav-item" onclick="navigate('listings')">العقارات</button>
+    <button class="nav-item" onclick="navigate('map')">الخريطة</button>
+    <button class="nav-item" onclick="navigate('dashboard')">لوحتي</button>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <div class="user-info" id="userInfo">
+      <div class="user-avatar" id="userAvatar">أ</div>
+      <span id="userName" style="font-size: 14px;">أحمد</span>
+      <button class="btn btn-outline" onclick="logout()" style="padding: 6px 14px; font-size: 12px;">خروج</button>
+    </div>
+    <button class="btn btn-outline" id="loginBtn" onclick="navigate('auth')">دخول</button>
+    <button class="btn btn-primary" onclick="navigate('add-property')">+ أضف عقار</button>
+  </div>
+</nav>
+
+<!-- HOME PAGE -->
+<div id="page-home" class="page active">
+  <div class="section" style="text-align: center; padding: 80px 32px;">
+    <h1 style="font-size: 48px; margin-bottom: 20px;">منصة إيجاري الذكية</h1>
+    <p style="font-size: 18px; color: var(--text2); margin-bottom: 40px;">ابحث عن شقق وفلل ومكاتب في دمياط وجميع المحافظات</p>
+    <button class="btn btn-primary" onclick="navigate('listings')" style="padding: 14px 32px; font-size: 16px;">ابدأ البحث</button>
+  </div>
+  
+  <div class="section">
+    <h2 style="text-align: center; margin-bottom: 32px;">الإحصائيات</h2>
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-num" id="total-props">8</div>
+        <div class="stat-label">عقار متاح</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="total-users">2</div>
+        <div class="stat-label">مستخدمون مسجلون</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">13</div>
+        <div class="stat-label">مدينة</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LISTINGS PAGE -->
+<div id="page-listings" class="page">
+  <div class="section">
+    <h2>جميع العقارات</h2>
+    <div style="margin: 20px 0;">
+      <input type="text" id="searchInput" placeholder="ابحث عن العقار..." style="width: 100%; max-width: 400px; padding: 10px; border-radius: 8px; border: 1px solid rgba(201,168,76,0.2); background: var(--card); color: var(--text);">
+    </div>
+    <div class="props-grid" id="listingsGrid"></div>
+  </div>
+</div>
+
+<!-- ADD PROPERTY PAGE -->
+<div id="page-add-property" class="page">
+  <div class="section">
+    <h2 style="text-align: center; margin-bottom: 32px;">أضف عقار جديد</h2>
+    <div class="auth-form">
+      <div class="form-group">
+        <label>اسم العقار</label>
+        <input type="text" id="addTitle" placeholder="اسم العقار" required>
+      </div>
+      <div class="form-group">
+        <label>نوع العقار</label>
+        <select id="addType">
+          <option>شقة</option>
+          <option>فيلا</option>
+          <option>مكتب</option>
+          <option>محل</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>المدينة</label>
+        <select id="addCity">
+          <option>الرياض</option>
+          <option>جدة</option>
+          <option>الدمام</option>
+          <option>دمياط</option>
+          <option>المنصورة</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>الحي</label>
+        <input type="text" id="addDistrict" placeholder="اسم الحي" required>
+      </div>
+      <div class="form-group">
+        <label>السعر (ريال/شهر)</label>
+        <input type="number" id="addPrice" placeholder="السعر" required>
+      </div>
+      <div class="form-group">
+        <label>عدد الغرف</label>
+        <input type="number" id="addRooms" placeholder="عدد الغرف" required>
+      </div>
+      <div class="form-group">
+        <label>عدد الحمامات</label>
+        <input type="number" id="addBaths" placeholder="عدد الحمامات" required>
+      </div>
+      <div class="form-group">
+        <label>المساحة (م²)</label>
+        <input type="number" id="addArea" placeholder="المساحة" required>
+      </div>
+      <div class="form-group">
+        <label>رقم التواصل</label>
+        <input type="tel" id="addPhone" placeholder="رقم الهاتف" required>
+      </div>
+      <div class="form-group">
+        <label>الوصف</label>
+        <textarea id="addDesc" placeholder="وصف العقار" rows="4"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="submitProperty()" style="width: 100%; padding: 12px;">نشر العقار</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAP PAGE -->
+<div id="page-map" class="page">
+  <div class="section">
+    <h2>خريطة العقارات - دمياط</h2>
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div id="page-dashboard" class="page">
+  <div class="section">
+    <h2>لوحة التحكم الخاصة بي</h2>
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-num" id="dash-props">0</div>
+        <div class="stat-label">عقاراتي</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="dash-views">0</div>
+        <div class="stat-label">مشاهدات</div>
+      </div>
+    </div>
+    <h3 style="margin-top: 32px; margin-bottom: 16px;">عقاراتي</h3>
+    <div class="props-grid" id="dashGrid"></div>
+  </div>
+</div>
+
+<!-- AUTH PAGE -->
+<div id="page-auth" class="page">
+  <div class="auth-form">
+    <h2 style="text-align: center; margin-bottom: 24px;">تسجيل الدخول / إنشاء حساب</h2>
+    <div class="form-group">
+      <label>الاسم</label>
+      <input type="text" id="authName" placeholder="اسمك الكامل" required>
+    </div>
+    <div class="form-group">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="authEmail" placeholder="بريدك الإلكتروني" required>
+    </div>
+    <div class="form-group">
+      <label>كلمة المرور</label>
+      <input type="password" id="authPassword" placeholder="كلمة المرور" required>
+    </div>
+    <div class="form-group">
+      <label>نوع الحساب</label>
+      <select id="authType">
+        <option value="landlord">مؤجر</option>
+        <option value="tenant">مستأجر</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="handleAuth()" style="width: 100%; padding: 12px;">دخول / تسجيل</button>
+  </div>
+</div>
+
+<script>
+// User Authentication
+let currentUser = JSON.parse(localStorage.getItem('ejaari_user')) || null;
+
+function handleAuth() {
+  const name = document.getElementById('authName').value;
+  const email = document.getElementById('authEmail').value;
+  const password = document.getElementById('authPassword').value;
+  const type = document.getElementById('authType').value;
+  
+  if (name && email && password) {
+    currentUser = { name, email, password, type, id: Date.now() };
+    localStorage.setItem('ejaari_user', JSON.stringify(currentUser));
+    updateUserUI();
+    navigate('home');
+    showNotification('تم تسجيل الدخول بنجاح! ✅');
+  }
+}
+
+function logout() {
+  currentUser = null;
+  localStorage.removeItem('ejaari_user');
+  updateUserUI();
+  navigate('home');
+  showNotification('تم تسجيل الخروج');
+}
+
+function updateUserUI() {
+  const userInfo = document.getElementById('userInfo');
+  const loginBtn = document.getElementById('loginBtn');
+  
+  if (currentUser) {
+    userInfo.style.display = 'flex';
+    loginBtn.style.display = 'none';
+    document.getElementById('userName').textContent = currentUser.name;
+    document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+  } else {
+    userInfo.style.display = 'none';
+    loginBtn.style.display = 'block';
+  }
+}
+
+// Properties Management with localStorage
+let properties = JSON.parse(localStorage.getItem('ejaari_properties')) || [
+  { id: 1, title: 'شقة فاخرة - حي النيل', type: 'شقة', city: 'دمياط', district: 'حي النيل', price: 3500, rooms: 3, baths: 2, area: 110, phone: '0570001111', desc: 'شقة حديثة بإطلالة على النيل', userId: 'admin', lat: 31.414, lng: 31.807 },
+  { id: 2, title: 'فيلا دمياط الجديدة', type: 'فيلا', city: 'دمياط', district: 'حي الجزيرة', price: 12000, rooms: 4, baths: 3, area: 300, phone: '0570002222', desc: 'فيلا حديثة بتصميم عصري', userId: 'admin', lat: 31.42, lng: 31.81 },
+  { id: 3, title: 'مكتب مجهز - وسط البلد', type: 'مكتب', city: 'دمياط', district: 'وسط البلد', price: 5000, rooms: 0, baths: 2, area: 150, phone: '0570003333', desc: 'مكتب تجاري مجهز بالكامل', userId: 'admin', lat: 31.413, lng: 31.808 },
+  { id: 4, title: 'محل تجاري - شارع النيل', type: 'محل', city: 'دمياط', district: 'شارع النيل', price: 4000, rooms: 0, baths: 1, area: 80, phone: '0570004444', desc: 'محل تجاري بموقع مميز', userId: 'admin', lat: 31.415, lng: 31.806 },
+];
+
+function saveProperties() {
+  localStorage.setItem('ejaari_properties', JSON.stringify(properties));
+}
+
+function submitProperty() {
+  if (!currentUser) {
+    showNotification('يرجى تسجيل الدخول أولاً');
+    navigate('auth');
+    return;
+  }
+
+  const title = document.getElementById('addTitle').value;
+  const type = document.getElementById('addType').value;
+  const city = document.getElementById('addCity').value;
+  const district = document.getElementById('addDistrict').value;
+  const price = parseFloat(document.getElementById('addPrice').value);
+  const rooms = parseInt(document.getElementById('addRooms').value);
+  const baths = parseInt(document.getElementById('addBaths').value);
+  const area = parseFloat(document.getElementById('addArea').value);
+  const phone = document.getElementById('addPhone').value;
+  const desc = document.getElementById('addDesc').value;
+
+  if (!title || !price || !rooms || !baths) {
+    showNotification('يرجى ملء جميع الحقول');
+    return;
+  }
+
+  const newProperty = {
+    id: Date.now(),
+    title,
+    type,
+    city,
+    district,
+    price,
+    rooms,
+    baths,
+    area,
+    phone,
+    desc,
+    userId: currentUser.id,
+    lat: 31.414 + Math.random() * 0.01,
+    lng: 31.807 + Math.random() * 0.01
+  };
+
+  properties.push(newProperty);
+  saveProperties();
+  
+  // Clear form
+  document.querySelectorAll('#page-add-property input, #page-add-property select, #page-add-property textarea').forEach(el => el.value = '');
+  
+  showNotification('تم إضافة العقار بنجاح! 🎉');
+  navigate('listings');
+  renderListings(properties);
+  if (window.mapInstance) initMap();
+}
+
+function renderListings(list = properties) {
+  const grid = document.getElementById('listingsGrid');
+  grid.innerHTML = list.map(p => `
+    <div class="prop-card" onclick="viewProperty(${p.id})">
+      <h3>${p.title}</h3>
+      <p><strong>النوع:</strong> ${p.type}</p>
+      <p><strong>المدينة:</strong> ${p.city} - ${p.district}</p>
+      <p><strong>السعر:</strong> ${p.price.toLocaleString()} ريال/شهر</p>
+      <p><strong>الغرف:</strong> ${p.rooms} | <strong>الحمامات:</strong> ${p.baths} | <strong>المساحة:</strong> ${p.area}م²</p>
+      <p style="font-size: 13px; margin-top: 10px;">📞 ${p.phone}</p>
+    </div>
+  `).join('');
+}
+
+function viewProperty(id) {
+  const prop = properties.find(p => p.id === id);
+  if (prop) {
+    showNotification(`تم الاتصال بـ ${prop.phone} 📞`);
+  }
+}
+
+function renderDashboard() {
+  if (!currentUser) {
+    navigate('auth');
+    return;
+  }
+
+  const userProps = properties.filter(p => p.userId === currentUser.id);
+  document.getElementById('dash-props').textContent = userProps.length;
+  document.getElementById('dash-views').textContent = userProps.length * 2;
+
+  const grid = document.getElementById('dashGrid');
+  grid.innerHTML = userProps.map(p => `
+    <div class="prop-card">
+      <h3>${p.title}</h3>
+      <p>${p.price.toLocaleString()} ريال/شهر</p>
+      <p>📍 ${p.city} - ${p.district}</p>
+      <button class="btn btn-outline" onclick="deleteProperty(${p.id})" style="width: 100%; margin-top: 10px;">حذف</button>
+    </div>
+  `).join('');
+}
+
+function deleteProperty(id) {
+  if (confirm('هل أنت متأكد من حذف هذا العقار؟')) {
+    properties = properties.filter(p => p.id !== id);
+    saveProperties();
+    renderDashboard();
+    renderListings();
+    showNotification('تم حذف العقار');
+  }
+}
+
+// Map initialization
+let mapInstance = null;
+
+function initMap() {
+  const damiettaCoords = [31.414, 31.807];
+  
+  if (!mapInstance) {
+    mapInstance = L.map('map').setView(damiettaCoords, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(mapInstance);
+  }
+
+  mapInstance.eachLayer(layer => {
+    if (layer instanceof L.Marker) mapInstance.removeLayer(layer);
+  });
+
+  properties.forEach(p => {
+    L.marker([p.lat, p.lng]).addTo(mapInstance)
+      .bindPopup(`<b>${p.title}</b><br>${p.price} ريال<br>${p.phone}`);
+  });
+}
+
+// Navigation
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  
+  if (page === 'listings') renderListings();
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'map') setTimeout(initMap, 100);
+  if (page === 'home') {
+    document.getElementById('total-props').textContent = properties.length;
+  }
+  
+  window.scrollTo(0, 0);
+}
+
+// Search
+document.getElementById('searchInput')?.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase();
+  const filtered = properties.filter(p => 
+    p.title.toLowerCase().includes(query) || 
+    p.city.includes(query) || 
+    p.district.includes(query)
+  );
+  renderListings(filtered);
+});
+
+// Notifications
+function showNotification(msg) {
+  const notification = document.createElement('div');
+  notification.textContent = msg;
+  notification.style.cssText = 'position: fixed; top: 90px; right: 20px; background: var(--card); color: var(--gold); padding: 16px 24px; border-radius: 10px; border: 1px solid var(--gold); z-index: 3000;';
+  document.body.appendChild(notification);
+  setTimeout(() => notification.remove(), 3000);
+}
+
+// Initialize
+updateUserUI();
+renderListings();
+document.getElementById('total-users').textContent = new Set(properties.map(p => p.userId)).size;
+</script>
+</body>
+</html>
