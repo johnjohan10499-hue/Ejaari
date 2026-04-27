@@ -1359,6 +1359,213 @@ function showToast(msg) {
 // Initialize
 updateStats();
 updateUserUI();
+  <script>
+// Map initialization
+function initMap() {
+  if (!mapInstance) {
+    mapInstance = L.map('map').setView([24.7136, 46.6753], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(mapInstance);
+  }
+  refreshMapMarkers();
+}
+
+// Add map markers
+function refreshMapMarkers() {
+  mapMarkers.forEach(m => mapInstance.removeLayer(m));
+  mapMarkers = [];
+  properties.forEach(p => {
+    const marker = L.marker([p.lat || 24.7136, p.lng || 46.6753])
+      .bindPopup(`<strong>${p.title}</strong><br>${p.price} جنيه`)
+      .addTo(mapInstance);
+    mapMarkers.push(marker);
+  });
+}
+
+// Search functions
+function liveSearch(query) { /* search as you type */ }
+function doSearch() {
+  const query = document.getElementById('search-input').value;
+  const type = document.getElementById('search-type').value;
+  const results = properties.filter(p => 
+    (p.title.includes(query) || p.location.includes(query)) &&
+    (!type || p.type === type)
+  );
+  renderListings(results);
+  navigate('listings');
+}
+
+// Filter functions
+function filterType(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentType = type;
+  applyFilters();
+}
+
+function applyFilters() {
+  const filters = {
+    type: currentType !== 'all' ? currentType : null,
+    location: document.getElementById('f-location')?.value || '',
+    minPrice: parseInt(document.getElementById('f-min')?.value) || 0,
+    maxPrice: parseInt(document.getElementById('f-max')?.value) || Infinity,
+    rooms: parseInt(document.getElementById('f-rooms')?.value) || 0,
+    sort: document.getElementById('f-sort')?.value || 'newest'
+  };
+  const results = properties.filter(p => {
+    return (!filters.type || p.type === filters.type) &&
+           (!filters.location || p.location.includes(filters.location)) &&
+           p.price >= filters.minPrice &&
+           p.price <= filters.maxPrice &&
+           p.rooms >= filters.rooms;
+  });
+  renderListings(results);
+}
+
+// Modal functions
+function openDetail(id) {
+  const prop = properties.find(p => p.id === id);
+  if (!prop) return;
+  const detailContent = document.getElementById('detail-content');
+  detailContent.innerHTML = `
+    <div class="prop-detail-header">
+      <div class="prop-detail-img">${prop.icon}</div>
+      <div class="prop-detail-info">
+        <div class="prop-detail-title">${prop.title}</div>
+        <div class="prop-detail-price">${prop.price.toLocaleString()} جنيه</div>
+        <div class="prop-detail-loc">📍 ${prop.location}</div>
+        <div class="prop-detail-meta">
+          ${prop.rooms > 0 ? `<div class="detail-meta-item"><div class="detail-meta-val">${prop.rooms}</div><div class="detail-meta-lbl">غرفة</div></div>` : ''}
+          <div class="detail-meta-item"><div class="detail-meta-val">${prop.baths}</div><div class="detail-meta-lbl">حمام</div></div>
+          <div class="detail-meta-item"><div class="detail-meta-val">${prop.area}</div><div class="detail-meta-lbl">م²</div></div>
+        </div>
+        <div class="prop-detail-loc">${prop.desc}</div>
+      </div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn-primary" onclick="openContact(${id})">تواصل مع المؤجر</button>
+      <button class="btn-outline" onclick="closeModal('detail-modal')">إغلاق</button>
+    </div>
+  `;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function openContact(id) {
+  contactProp = properties.find(p => p.id === id);
+  if (!contactProp) return;
+  document.getElementById('contact-preview').innerHTML = `
+    <div class="contact-prop-emoji">${contactProp.icon}</div>
+    <div class="contact-prop-info">
+      <div class="name">${contactProp.title}</div>
+      <div class="price">${contactProp.price.toLocaleString()} جنيه/شهر</div>
+    </div>
+  `;
+  closeModal('detail-modal');
+  document.getElementById('contact-modal').classList.add('open');
+}
+
+function openAddProp() {
+  if (!currentUser) {
+    showToast('يرجى تسجيل الدخول أولاً');
+    navigate('auth');
+    return;
+  }
+  document.getElementById('add-prop-modal').classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function addProperty() {
+  const prop = {
+    title: document.getElementById('new-title').value,
+    type: document.getElementById('new-type').value,
+    location: document.getElementById('new-location').value,
+    price: parseInt(document.getElementById('new-price').value),
+    rooms: parseInt(document.getElementById('new-rooms').value),
+    baths: parseInt(document.getElementById('new-baths').value),
+    area: parseInt(document.getElementById('new-area').value),
+    phone: document.getElementById('new-phone').value,
+    desc: document.getElementById('new-desc').value,
+    icon: '🏠',
+    media: mediaFiles,
+    userId: currentUser?.email
+  };
+  const newProp = ejaariApp.addProperty(prop);
+  if (newProp) {
+    showToast('تم إضافة العقار بنجاح! ✅');
+    mediaFiles = [];
+    closeModal('add-prop-modal');
+    renderAll();
+  }
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// Chat functions
+function openChat(key) {
+  currentChatProp = key;
+  const messages = chats[key] || [];
+  const chatMessages = document.getElementById('chat-messages');
+  chatMessages.innerHTML = messages.map(m => `
+    <div class="chat-message ${m.from === currentUser.email ? 'own' : 'other'}">
+      <div class="chat-bubble">${m.text}</div>
+    </div>
+  `).join('');
+  document.getElementById('chat-area').style.display = 'block';
+  document.getElementById('empty-chat').style.display = 'none';
+}
+
+function sendChatMessage() {
+  const text = document.getElementById('chat-input').value;
+  if (!text || !currentChatProp) return;
+  const [propId, otherEmail] = currentChatProp.split('_');
+  ejaariApp.sendChatMessage(parseInt(propId), currentUser.email, otherEmail, text);
+  document.getElementById('chat-input').value = '';
+  openChat(currentChatProp);
+}
+
+// Contact functions
+function sendContact() {
+  const name = document.getElementById('contact-name').value;
+  const phone = document.getElementById('contact-phone').value;
+  const msg = document.getElementById('contact-msg').value;
+  if (!name || !phone || !msg) {
+    showToast('يرجى ملء جميع الحقول');
+    return;
+  }
+  const key = `${contactProp.id}_${currentUser?.email || 'guest'}`;
+  chats[key] = chats[key] || [];
+  chats[key].push({
+    from: name,
+    to: contactProp.userId,
+    propertyId: contactProp.id,
+    text: msg,
+    timestamp: Date.now(),
+    read: false
+  });
+  saveProperties();
+  showToast('تم إرسال الرسالة بنجاح ✅');
+  closeModal('contact-modal');
+}
+
+function openWhatsApp() {
+  const phone = contactProp.phone;
+  window.open(`https://wa.me/${phone}`, '_blank');
+}
+
+function makeCall() {
+  const phone = contactProp.phone;
+  window.location.href = `tel:${phone}`;
+}
 </script>
 </body>
 </html>
