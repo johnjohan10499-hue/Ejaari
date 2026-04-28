@@ -214,7 +214,7 @@ function renderDashboard() {
     const loc = p.location;
     const price = `${p.price.toLocaleString()} جنيه/شهر`;
     const s = statuses[i] || 'inactive';
-    const sLabel = s === 'active' ? 'مؤجَّر' : s === 'pending' ? 'قيد الانتظار' : 'شاغر';
+    const sLabel = s === 'active' ? 'متاح' : s === 'pending' ? 'قيد الانتظار' : s === 'Rented' ? 'تم التأجير';
     return `<div class="dash-prop-row" onclick="openDetail(${p.id})">
       <div class="dash-prop-emoji">${p.icon}</div>
       <div class="dash-prop-info">
