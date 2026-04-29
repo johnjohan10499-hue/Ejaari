@@ -1,26 +1,4 @@
-[11:48 AM, 4/29/2026] Hossam: <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>إيجاري | Ejaari</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>
-  :root {
-    --bg: #0c0f14;
-    --bg2: #131720;
-    --bg3: #1a2030;
-    --card: #1e2535;
-    --card2: #252d40;
-    --gold: #c9a84c;
-    --gold2: #e8c46a;
-    --gold-dim: rgba(201,168,76,0.12);
-    --text: #e8eaf0;
-    --text2: #9aa3b8;
-    --tex…
-[11:48 AM, 4/29/2026] Hossam: // ========================================
+// ========================================
 // EJAARI - COMPLETE JAVASCRIPT FILE
 // Updated: Photo display, auto-listing, admin remove, WhatsApp, in-site chat & notifications
 // ========================================
