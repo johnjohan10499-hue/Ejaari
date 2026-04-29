@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إيجاري | Ejaari</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #0c0f14;
+    --bg2: #131720;
+    --bg3: #1a2030;
+    --card: #1e2535;
+    --card2: #252d40;
+    --gold: #c9a84c;
+    --gold2: #e8c46a;
+    --gold-dim: rgba(201,168,76,0.12);
+    --text: #e8eaf0;
+    --text2: #9aa3b8;
+    --text3: #6b7490;
+    --border: rgba(201,168,76,0.15);
+    --border2: rgba(255,255,255,0.06);
+    --green: #34c98e;
+    --red: #e85c5c;
+    --blue: #5c9ce8;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 8px 40px rgba(0,0,0,0.5);
+    --shadow-gold: 0 4px 24px rgba(201,168,76,0.2);
+  }
+  [data-lang="en"] { font-family: 'Outfit', sans-serif; direction: ltr; }
+  [data-lang="ar"] { font-family: 'Tajawal', sans-serif; direction: rtl; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--bg); color: var(--text); min-height: 100vh; font-family: 'Tajawal', sans-serif; direction: rtl; overflow-x: hidden; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+  nav {
+    position: fixed; top: 0; width: 100%; z-index: 1000;
+    background: rgba(12,15,20,0.92); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px; height: 70px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .logo-icon {
+    width: 38px; height: 38px; background: var(--gold);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 900; color: var(--bg);
+  }
+  .logo-text { font-size: 22px; font-weight: 700; }
+  .logo-text span { color: var(--gold); }
+  .nav-links { display: flex; align-items: center; gap: 8px; }
+  .nav-link {
+    padding: 8px 16px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; color: var(--text2); transition: all 0.2s;
+    border: none; background: none; font-family: inherit;
+  }
+  .nav-link:hover { color: var(--text); background: var(--bg3); }
+  .nav-link.active { color: var(--gold); }
+  .nav-actions { display: flex; align-items: center; gap: 10px; }
+  .btn-lang {
+    padding: 6px 14px; border-radius: 8px; cursor: pointer;
+    background: var(--bg3); border: 1px solid var(--border2);
+    color: var(--text2); font-size: 13px; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .btn-lang:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-primary {
+    padding: 9px 22px; border-radius: 10px; cursor: pointer;
+    background: var(--gold); border: none; color: var(--bg);
+    font-weight: 700; font-size: 14px; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: var(--shadow-gold); }
+  .btn-outline {
+    padding: 9px 22px; border-radius: 10px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--gold); font-weight: 600; font-size: 14px; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .btn-outline:hover { background: var(--gold-dim); }
+  .user-profile { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 8px; background: var(--bg3); cursor: pointer; position: relative; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--bg); }
+  
+  .notif-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--red);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .page { display: none; padding-top: 70px; min-height: 100vh; animation: fadeIn 0.4s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .hero { position: relative; min-height: calc(100vh - 70px); display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(201,168,76,0.1) 0%, transparent 100%); }
+  .hero-grid { position: absolute; inset: 0; opacity: 0.04; background-image: linear-gradient(var(--gold) 1px, transparent 1px), linear-gradient(90deg, var(--gold) 1px, transparent 1px); background-size: 60px 60px; }
+  .hero-content { position: relative; z-index: 1; max-width: 780px; padding: 40px 24px; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--gold-dim); border: 1px solid var(--border); border-radius: 100px; padding: 6px 16px; font-size: 13px; color: var(--gold); }
+  .hero h1 { font-size: clamp(38px, 6vw, 68px); font-weight: 900; line-height: 1.1; margin-bottom: 20px; letter-spacing: -1px; }
+  .hero h1 em { font-style: italic; color: var(--gold); font-family: 'DM Serif Display', serif; }
+  .hero p { font-size: 18px; color: var(--text2); margin-bottom: 40px; line-height: 1.7; max-width: 560px; margin-inline: auto; }
+  .hero-search { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 8px; display: flex; gap: 8px; max-width: 680px; margin: 0 auto; box-shadow: var(--shadow); flex-wrap: wrap; }
+  .hero-search input { flex: 1; min-width: 180px; background: none; border: none; outline: none; color: var(--text); font-size: 15px; padding: 10px 14px; font-family: inherit; }
+  .hero-search input::placeholder { color: var(--text3); }
+  .hero-search select { background: var(--bg3); border: 1px solid var(--border2); outline: none; color: var(--text2); font-size: 14px; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-family: inherit; }
+  .hero-search .btn-primary { padding: 12px 28px; border-radius: 12px; font-size: 15px; white-space: nowrap; }
+  .hero-stats { display: flex; gap: 40px; justify-content: center; margin-top: 48px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 32px; font-weight: 900; color: var(--gold); }
+  .stat-label { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+  .section { padding: 80px 32px; max-width: 1200px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 48px; }
+  .section-label { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+  .section-title { font-size: clamp(26px, 4vw, 42px); font-weight: 800; margin-bottom: 14px; }
+  .section-sub { font-size: 16px; color: var(--text2); max-width: 500px; margin: 0 auto; line-height: 1.6; }
+
+  .prop-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+  .filter-btn { padding: 8px 18px; border-radius: 100px; border: 1px solid var(--border2); background: none; color: var(--text2); font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+  .filter-btn.active, .filter-btn:hover { background: var(--gold); border-color: var(--gold); color: var(--bg); font-weight: 700; }
+
+  .filter-bar { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 28px; display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px; }
+  .filter-group label { font-size: 12px; color: var(--text3); }
+  .filter-group select, .filter-group input { background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; color: var(--text); padding: 9px 12px; font-size: 14px; outline: none; font-family: inherit; }
+  .filter-group select:focus, .filter-group input:focus { border-color: var(--gold); }
+
+  .props-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+  .prop-card { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: all 0.3s; position: relative; animation: slideIn 0.4s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .prop-card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: var(--shadow-gold); }
+  .prop-img { height: 200px; position: relative; overflow: hidden; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 64px; }
+  .prop-img-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.7) 100%); }
+  .prop-badge { position: absolute; top: 12px; right: 12px; background: var(--gold); color: var(--bg); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; }
+  [data-lang="en"] .prop-badge { right: auto; left: 12px; }
+  .prop-price { position: absolute; bottom: 12px; left: 12px; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); color: var(--gold); font-size: 15px; font-weight: 700; padding: 6px 12px; border-radius: 8px; }
+  [data-lang="en"] .prop-price { left: 12px; right: auto; }
+  
+  .btn-delete-prop {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(232,92,92,0.9);
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 10;
+  }
+  [data-lang="en"] .btn-delete-prop { left: auto; right: 12px; }
+  .btn-delete-prop:hover { background: var(--red); transform: scale(1.1); }
+  
+  .prop-body { padding: 16px; }
+  .prop-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .prop-location { font-size: 13px; color: var(--text3); margin-bottom: 14px; display: flex; align-items: center; gap: 4px; }
+  .prop-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+  .prop-meta-item { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text2); }
+  .prop-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border2); }
+  .btn-sm { flex: 1; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; text-align: center; }
+  .btn-sm-primary { background: var(--gold); border: none; color: var(--bg); }
+  .btn-sm-primary:hover { background: var(--gold2); }
+  .btn-sm-outline { background: none; border: 1px solid var(--border2); color: var(--text2); }
+  .btn-sm-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+  .map-container { display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 70px); }
+  .map-sidebar { background: var(--bg2); border-left: 1px solid var(--border2); overflow-y: auto; padding: 20px; }
+  [data-lang="en"] .map-sidebar { border-left: none; border-right: 1px solid var(--border2); }
+  #map { width: 100%; height: calc(100vh - 70px); z-index: 1; }
+  #add-prop-map { width: 100%; height: 300px; border-radius: var(--radius-sm); margin-bottom: 16px; }
+  .map-list-card { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; gap: 12px; }
+  .map-list-card:hover, .map-list-card.selected { border-color: var(--gold); }
+  .map-list-img { width: 70px; height: 70px; border-radius: 8px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+  .map-list-info { flex: 1; }
+  .map-list-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .map-list-price { font-size: 13px; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+  .map-list-loc { font-size: 12px; color: var(--text3); }
+
+  .media-upload { background: var(--bg3); border: 2px dashed var(--gold); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 14px; }
+  .media-upload:hover { border-color: var(--gold2); background: rgba(201,168,76,0.08); }
+  .media-upload-text { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+  .media-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 12px; }
+  .media-thumb { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; }
+  .media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .media-thumb .remove-media { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: var(--red); border: none; border-radius: 50%; color: white; cursor: pointer; font-size: 12px; }
+
+  .dashboard { padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+  .dash-title { font-size: 26px; font-weight: 800; }
+  .dash-sub { font-size: 14px; color: var(--text2); margin-top: 4px; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; gap: 16px; transition: all 0.2s; }
+  .stat-card:hover { border-color: var(--gold); }
+  .stat-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+  .stat-icon.gold { background: rgba(201,168,76,0.15); }
+  .stat-icon.green { background: rgba(52,201,142,0.15); }
+  .stat-icon.blue { background: rgba(92,156,232,0.15); }
+  .stat-icon.red { background: rgba(232,92,92,0.15); }
+  .stat-info .num { font-size: 28px; font-weight: 900; }
+  .stat-info .lbl { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  .dash-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
+  .dash-card { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius); padding: 24px; }
+  .dash-card-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+  .dash-prop-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border2); transition: all 0.2s; cursor: pointer; }
+  .dash-prop-row:last-child { border-bottom: none; }
+  .dash-prop-row:hover { opacity: 0.8; }
+  .dash-prop-emoji { width: 44px; height: 44px; background: var(--bg3); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .dash-prop-info { flex: 1; }
+  .dash-prop-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .dash-prop-loc { font-size: 12px; color: var(--text3); }
+  .dash-prop-price { font-size: 14px; font-weight: 700; color: var(--gold); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; }
+  .status-dot.active { background: var(--green); }
+  .status-dot.pending { background: var(--gold); }
+  .status-dot.inactive { background: var(--text3); }
+  
+  .inbox-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border2); cursor: pointer; transition: opacity 0.2s; }
+  .inbox-item:hover { opacity: 0.8; }
+  .inbox-item:last-child { border-bottom: none; }
+  .inbox-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--gold-dim); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+  .inbox-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+  .inbox-msg { font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+  .inbox-time { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .unread-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+
+  .notifications-page { padding: 32px; max-width: 800px; margin: 0 auto; }
+  .notifications-header { margin-bottom: 24px; }
+  .notifications-title { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+  .notification-item { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px; display: flex; gap: 14px; cursor: pointer; transition: all 0.2s; }
+  .notification-item:hover { border-color: var(--gold); }
+  .notification-item.unread { background: var(--card2); border-color: var(--gold); }
+  .notif-icon { font-size: 28px; flex-shrink: 0; }
+  .notif-content { flex: 1; }
+  .notif-message { font-size: 14px; margin-bottom: 4px; }
+  .notif-time { font-size: 12px; color: var(--text3); }
+  .notif-unread-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 2000; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.open { display: flex; animation: fadeIn 0.25s ease; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; padding: 32px; position: relative; }
+  .modal-close { position: absolute; top: 16px; left: 16px; width: 36px; height: 36px; border-radius: 50%; background: var(--bg3); border: none; color: var(--text); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  [data-lang="en"] .modal-close { left: auto; right: 16px; }
+  .modal-close:hover { background: var(--card2); }
+  .modal-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .modal-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 7px; }
+  .form-group.full { grid-column: span 2; }
+  .form-group label { font-size: 13px; color: var(--text2); }
+  .form-group input, .form-group select, .form-group textarea { background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; color: var(--text); padding: 11px 14px; font-size: 14px; outline: none; font-family: inherit; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--gold); }
+  .form-group textarea { resize: vertical; min-height: 90px; }
+  .form-actions { display: flex; gap: 10px; margin-top: 24px; }
+
+  .chat-modal-content { display: flex; flex-direction: column; height: 600px; }
+  .chat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border2); }
+  .chat-prop-info { flex: 1; }
+  .chat-prop-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .chat-prop-details { font-size: 12px; color: var(--text3); }
+  .chat-owner-section { text-align: center; padding: 12px; background: var(--bg3); border-radius: 10px; margin-bottom: 16px; }
+  .chat-owner-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .chat-owner-name { font-size: 14px; font-weight: 700; }
+  .chat-owner-contact { font-size: 12px; color: var(--gold); margin-top: 6px; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px 0; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .chat-message { display: flex; flex-direction: column; gap: 4px; max-width: 70%; }
+  .chat-message.own { align-self: flex-end; align-items: flex-end; }
+  .chat-message.other { align-self: flex-start; align-items: flex-start; }
+  .chat-bubble { background: var(--gold); color: var(--bg); padding: 10px 14px; border-radius: 12px; word-wrap: break-word; }
+  .chat-message.other .chat-bubble { background: var(--card2); color: var(--text); }
+  .chat-time { font-size: 11px; color: var(--text3); }
+  .chat-input-area { display: flex; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border2); }
+  .chat-input-area input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; color: var(--text); padding: 10px 14px; font-size: 14px; outline: none; font-family: inherit; }
+  .chat-input-area input:focus { border-color: var(--gold); }
+  .chat-input-area button { padding: 10px 20px; background: var(--gold); border: none; border-radius: 10px; color: var(--bg); font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .chat-input-area button:hover { background: var(--gold2); }
+  .chat-action-buttons { display: flex; gap: 10px; margin-top: 16px; }
+  .chat-action-buttons button { flex: 1; padding: 10px; border-radius: 10px; background: var(--bg3); border: 1px solid var(--border2); color: var(--text); cursor: pointer; transition: all 0.2s; font-family: inherit; }
+  .chat-action-buttons button:hover { border-color: var(--gold); color: var(--gold); }
+
+  .prop-detail-header { display: flex; gap: 24px; margin-bottom: 32px; flex-wrap: wrap; }
+  .prop-detail-img { flex: 1; min-width: 280px; height: 320px; background: var(--bg3); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 96px; overflow: hidden; }
+  .prop-detail-img img { width: 100%; height: 100%; object-fit: cover; }
+  .prop-detail-info { flex: 1; min-width: 260px; }
+  .prop-detail-title { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+  .prop-detail-price { font-size: 28px; color: var(--gold); font-weight: 900; margin-bottom: 16px; }
+  .prop-detail-loc { font-size: 15px; color: var(--text2); margin-bottom: 20px; }
+  .prop-detail-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+  .detail-meta-item { background: var(--bg3); border-radius: 10px; padding: 12px 16px; text-align: center; }
+  .detail-meta-val { font-size: 18px; font-weight: 700; }
+  .detail-meta-lbl { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .prop-features { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .feature-tag { background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--text2); }
+
+  .img-choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+  .img-choice { height: 64px; background: var(--bg3); border-radius: 10px; border: 2px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; transition: all 0.2s; }
+  .img-choice:hover, .img-choice.selected { border-color: var(--gold); background: var(--gold-dim); }
+
+  .auth-page { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 70px); padding: 24px; }
+  .auth-card { background: var(--card); border: 1px solid var(--border2); border-radius: 20px; padding: 40px; width: 100%; max-width: 440px; }
+  .auth-tabs { display: flex; margin-bottom: 28px; background: var(--bg3); border-radius: 12px; padding: 4px; }
+  .auth-tab { flex: 1; padding: 10px; border-radius: 10px; border: none; background: none; color: var(--text2); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+  .auth-tab.active { background: var(--gold); color: var(--bg); }
+  .auth-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .auth-sub { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+  .auth-form { display: flex; flex-direction: column; gap: 14px; }
+  .auth-form input, .auth-form select { background: var(--bg3); border: 1px solid var(--border2); border-radius: 12px; color: var(--text); padding: 13px 16px; font-size: 15px; outline: none; font-family: inherit; }
+  .auth-form input:focus, .auth-form select:focus { border-color: var(--gold); }
+  .auth-form .btn-primary { padding: 14px; font-size: 16px; width: 100%; border-radius: 12px; margin-top: 6px; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--gold); border-radius: 12px; padding: 14px 24px; font-size: 14px; z-index: 999; display: none; animation: toastIn 0.3s ease; }
+  .toast.show { display: block; }
+  @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(20px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+  .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+  .how-card { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius); padding: 28px; text-align: center; transition: all 0.3s; }
+  .how-card:hover { border-color: var(--gold); transform: translateY(-4px); }
+  .how-num { width: 52px; height: 52px; border-radius: 50%; background: var(--gold-dim); border: 2px solid var(--gold); color: var(--gold); font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+  .how-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .how-desc { font-size: 14px; color: var(--text2); line-height: 1.6; }
+  .how-icon { font-size: 36px; margin-bottom: 14px; }
+
+  @media (max-width: 768px) {
+    .map-container { grid-template-columns: 1fr; }
+    .map-sidebar { display: none; }
+    .dash-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: span 1; }
+    .hero-search { flex-direction: column; }
+    nav { padding: 0 16px; }
+    .nav-links { display: none; }
+    .prop-detail-header { flex-direction: column; }
+    .chat-modal-content { height: auto; max-height: 80vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo" onclick="navigate('home')">
+    <div class="logo-icon">إ</div>
+    <div class="logo-text"><span>إيجاري</span> | Ejaari</div>
+  </div>
+  <div class="nav-links">
+    <button class="nav-link active" id="nav-home" onclick="navigate('home')">الرئيسية</button>
+    <button class="nav-link" id="nav-listings" onclick="navigate('listings')">العقارات</button>
+    <button class="nav-link" id="nav-map" onclick="navigate('map')">الخريطة</button>
+    <button class="nav-link" id="nav-dashboard" onclick="navigate('dashboard')">لوحة التحكم</button>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-lang" onclick="toggleLang()"><span id="lang-label">EN</span></button>
+    <div id="user-section" style="display:none">
+      <div class="user-profile" onclick="toggleProfileMenu()">
+        <div class="user-avatar" id="user-avatar">أ</div>
+        <span id="user-name" style="font-size:13px">أحمد</span>
+      </div>
+      <div id="notif-badge" class="notif-badge" style="display:none">0</div>
+      <div id="profile-menu" style="position:absolute;top:70px;right:32px;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:8px;display:none;min-width:180px;z-index:100">
+        <button onclick="navigate('dashboard')" style="width:100%;padding:10px;text-align:right;border:none;background:none;color:var(--text);cursor:pointer;font-family:inherit;font-size:14px;border-radius:8px;transition:all 0.2s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">📊 لوحة التحكم</button>
+        <button onclick="navigate('notifications')" style="width:100%;padding:10px;text-align:right;border:none;background:none;color:var(--text);cursor:pointer;font-family:inherit;font-size:14px;border-radius:8px;transition:all 0.2s;display:flex;align-items:center;gap:6px" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">🔔 الإشعارات</button>
+        <button onclick="logout()" style="width:100%;padding:10px;text-align:right;border:none;background:none;color:var(--red);cursor:pointer;font-family:inherit;font-size:14px;border-radius:8px;transition:all 0.2s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">🚪 تسجيل الخروج</button>
+      </div>
+    </div>
+    <button id="login-btn" class="btn-outline" onclick="navigate('auth')" style="display:block">تسجيل الدخول</button>
+    <button class="btn-primary" onclick="openAddProp()">+ أضف عقار</button>
+  </div>
+</nav>
+
+<!-- HOME PAGE -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="hero-badge">🏠 منصة الإيجار الذكي</div>
+      <h1><em>إيجاري</em> — اوصل بين المؤجر والمستأجر</h1>
+      <p>ابحث عن شقق، فلل، مكاتب ومحلات بأسعار تنافسية. تواصل مباشر مع المؤجرين بدون وسطاء.</p>
+      <div class="hero-search">
+        <input type="text" id="search-input" placeholder="ابحث عن المدينة أو الحي..." oninput="liveSearch(this.value)">
+        <select id="search-type">
+          <option value="">كل الأنواع</option>
+          <option value="شقة">شقة</option>
+          <option value="فيلا">فيلا</option>
+          <option value="مكتب">مكتب</option>
+          <option value="محل">محل</option>
+        </select>
+        <button class="btn-primary" onclick="doSearch()">بحث 🔍</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-num" id="stats-props">0</div><div class="stat-label">عقار متاح</div></div>
+        <div class="stat"><div class="stat-num" id="stats-users">0</div><div class="stat-label">مستخدم مسجل</div></div>
+        <div class="stat"><div class="stat-num">13</div><div class="stat-label">مدينة</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-label">كيف يعمل؟</div>
+      <div class="section-title">ثلاث خطوات بسيطة</div>
+    </div>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-icon">🔍</div>
+        <div class="how-num">1</div>
+        <div class="how-title">ابحث عن العقار</div>
+        <div class="how-desc">استخدم الفلاتر المتقدمة أو الخريطة للعثور على العقار المناسب</div>
+      </div>
+      <div class="how-card">
+        <div class="how-icon">💬</div>
+        <div class="how-num">2</div>
+        <div class="how-title">تواصل مع المؤجر</div>
+        <div class="how-desc">تواصل مباشرة مع المؤجر عبر الموقع أو الواتساب لتحديد موعد الزيارة</div>
+      </div>
+      <div class="how-card">
+        <div class="how-icon">🏠</div>
+        <div class="how-num">3</div>
+        <div class="how-title">وقّع وانتقل</div>
+        <div class="how-desc">أتمّ الاتفاق واستمتع بعقارك الجديد بكل سهولة</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURED PROPERTIES -->
+  <div class="section" style="padding-top:0">
+    <div class="section-header">
+      <div class="section-label">عقارات مميزة</div>
+      <div class="section-title">الأكثر مشاهدة</div>
+    </div>
+    <div class="props-grid" id="featured-grid"></div>
+  </div>
+</div>
+
+<!-- LISTINGS PAGE -->
+<div id="page-listings" class="page">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">جميع العقارات</div>
+    </div>
+
+    <div class="prop-filters" id="type-filters">
+      <button class="filter-btn active" onclick="filterType('all', this)">الكل</button>
+      <button class="filter-btn" onclick="filterType('شقة', this)">🏢 شقق</button>
+      <button class="filter-btn" onclick="filterType('فيلا', this)">🏡 فلل وبيوت</button>
+      <button class="filter-btn" onclick="filterType('مكتب', this)">🏢 مكاتب تجارية</button>
+      <button class="filter-btn" onclick="filterType('محل', this)">🏪 محلات</button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>المدينة أو الحي</label>
+        <input type="text" id="f-location" placeholder="ابحث عن مدينة أو حي..." oninput="applyFilters()">
+      </div>
+      <div class="filter-group">
+        <label>السعر من (جنيه/شهر)</label>
+        <input type="number" id="f-min" placeholder="0" oninput="applyFilters()">
+      </div>
+      <div class="filter-group">
+        <label>السعر إلى (جنيه/شهر)</label>
+        <input type="number" id="f-max" placeholder="∞" oninput="applyFilters()">
+      </div>
+      <div class="filter-group">
+        <label>الغرف</label>
+        <select id="f-rooms" onchange="applyFilters()">
+          <option value="">كل</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4+</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>الترتيب</label>
+        <select id="f-sort" onchange="applyFilters()">
+          <option value="newest">الأحدث</option>
+          <option value="price-asc">السعر ↑</option>
+          <option value="price-desc">السعر ↓</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="props-grid" id="listings-grid"></div>
+  </div>
+</div>
+
+<!-- MAP PAGE -->
+<div id="page-map" class="page" style="padding-top:70px">
+  <div class="map-container">
+    <div class="map-sidebar">
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">العقارات على الخريطة</div>
+      <div id="map-list"></div>
+    </div>
+    <div style="position:relative;flex:1">
+      <div id="map"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div id="page-dashboard" class="page">
+  <div class="dashboard">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title">لوحة تحكم المؤجر</div>
+        <div class="dash-sub" id="dash-welcome">مرحباً! هذا ملخص عقاراتك ورسائلك.</div>
+      </div>
+      <button class="btn-primary" onclick="openAddProp()">+ إضافة عقار</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon gold">🏠</div>
+        <div class="stat-info"><div class="num" id="stat-props">0</div><div class="lbl">عقاراتي</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-info"><div class="num" id="stat-active">0</div><div class="lbl">مؤجَّرة حالياً</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">💬</div>
+        <div class="stat-info"><div class="num" id="stat-messages">0</div><div class="lbl">رسائل جديدة</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon gold">💰</div>
+        <div class="stat-info"><div class="num" id="stat-revenue">0</div><div class="lbl">جنيه / شهر</div></div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-title">
+          <span>عقاراتي</span>
+          <button class="btn-sm btn-sm-outline" onclick="navigate('listings')" style="width:auto;font-size:12px;padding:5px 12px">عرض الكل</button>
+        </div>
+        <div id="dash-props-list"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">الرسائل الواردة</div>
+        <div class="inbox-item">
+          <div class="inbox-avatar">👤</div>
+          <div style="flex:1">
+            <div class="inbox-name">محمد العمري</div>
+            <div class="inbox-msg">هل الشقة لا تزال متاحة؟</div>
+            <div class="inbox-time">منذ 5 دقائق</div>
+          </div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="inbox-item">
+          <div class="inbox-avatar">👤</div>
+          <div style="flex:1">
+            <div class="inbox-name">سارة الخالد</div>
+            <div class="inbox-msg">هل يمكن تخفيض الإيجار؟</div>
+            <div class="inbox-time">منذ ساعة</div>
+          </div>
+          <div class="unread-dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS PAGE -->
+<div id="page-notifications" class="page">
+  <div class="notifications-page">
+    <div class="notifications-header">
+      <div class="notifications-title">الإشعارات</div>
+    </div>
+    <div id="notifications-list"></div>
+  </div>
+</div>
+
+<!-- AUTH PAGE -->
+<div id="page-auth" class="page">
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="authTab('login', this)">تسجيل الدخول</button>
+        <button class="auth-tab" onclick="authTab('register', this)">إنشاء حساب</button>
+      </div>
+      <div id="auth-login">
+        <div class="auth-title">مرحباً بك 👋</div>
+        <div class="auth-sub">سجل دخولك للوصول إلى حسابك</div>
+        <div class="auth-form">
+          <input type="email" id="login-email" placeholder="البريد الإلكتروني">
+          <input type="password" id="login-password" placeholder="كلمة المرور">
+          <button class="btn-primary" onclick="handleLogin()">دخول</button>
+        </div>
+      </div>
+      <div id="auth-register" style="display:none">
+        <div class="auth-title">حساب جديد 🏠</div>
+        <div class="auth-sub">انضم لإيجاري كمؤجر أو مستأجر</div>
+        <div class="auth-form">
+          <input type="text" id="register-name" placeholder="الاسم الكامل">
+          <input type="email" id="register-email" placeholder="البريد الإلكتروني">
+          <input type="tel" id="register-phone" placeholder="رقم الجوال">
+          <select id="register-type">
+            <option value="tenant">أنا: مستأجر</option>
+            <option value="landlord">أنا: مؤجر</option>
+          </select>
+          <input type="password" id="register-password" placeholder="كلمة المرور">
+          <button class="btn-primary" onclick="handleRegister()">إنشاء الحساب</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PROPERTY MODAL -->
+<div class="modal-overlay" id="add-prop-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-prop-modal')">✕</button>
+    <div class="modal-title">إضافة عقار جديد 🏠</div>
+    <div class="modal-sub">أدخل تفاصيل العقار ليراه المستأجرون</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>اسم العقار</label>
+        <input type="text" id="new-title" placeholder="مثال: شقة فاخرة في القاهرة">
+      </div>
+      <div class="form-group">
+        <label>نوع العقار</label>
+        <select id="new-type">
+          <option value="شقة">🏢 شقة</option>
+          <option value="فيلا">🏡 فيلا</option>
+          <option value="مكتب">🏢 مكتب</option>
+          <option value="محل">🏪 محل</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>المدينة أو الحي</label>
+        <input type="text" id="new-location" placeholder="مثال: حي النرجس، القاهرة">
+      </div>
+      <div class="form-group">
+        <label>الإيجار الشهري (جنيه)</label>
+        <input type="number" id="new-price" placeholder="مثال: 4500">
+      </div>
+      <div class="form-group">
+        <label>عدد الغرف</label>
+        <select id="new-rooms"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5+</option></select>
+      </div>
+      <div class="form-group">
+        <label>الحمامات</label>
+        <select id="new-baths"><option>1</option><option selected>2</option><option>3</option><option>4+</option></select>
+      </div>
+      <div class="form-group">
+        <label>المساحة (م²)</label>
+        <input type="number" id="new-area" placeholder="مثال: 120">
+      </div>
+      <div class="form-group">
+        <label>رقم التواصل</label>
+        <input type="tel" id="new-phone" placeholder="201XXXXXXXXX">
+      </div>
+      <div class="form-group full">
+        <label>الوصف</label>
+        <textarea id="new-desc" placeholder="أضف وصفاً مفصلاً للعقار..."></textarea>
+      </div>
+      <div class="form-group full">
+        <label>📸 صور وفيديوهات العقار</label>
+        <div class="media-upload" onclick="document.getElementById('new-media').click()">
+          <div class="media-upload-text">اضغط أو اسحب الصور/الفيديوهات هنا</div>
+          <input type="file" id="new-media" multiple accept="image/*,video/*" style="display:none" onchange="handleMediaUpload(event)">
+        </div>
+        <div class="media-preview" id="media-preview"></div>
+      </div>
+      <div class="form-group full">
+        <label>📍 موقع العقار على الخريطة</label>
+        <div id="add-prop-map"></div>
+        <input type="hidden" id="new-map-lat" value="">
+        <input type="hidden" id="new-map-lng" value="">
+        <div style="font-size:12px;color:var(--text2);margin-top:8px">اضغط على الخريطة لتحديد الموقع</div>
+      </div>
+      <div class="form-group full">
+        <label>أيقونة العقار</label>
+        <div class="img-choices">
+          <div class="img-choice selected" onclick="selectIcon(this, '🏢')">🏢</div>
+          <div class="img-choice" onclick="selectIcon(this, '🏡')">🏡</div>
+          <div class="img-choice" onclick="selectIcon(this, '🏠')">🏠</div>
+          <div class="img-choice" onclick="selectIcon(this, '🏪')">🏪</div>
+          <div class="img-choice" onclick="selectIcon(this, '🏗️')">🏗️</div>
+          <div class="img-choice" onclick="selectIcon(this, '🏰')">🏰</div>
+          <div class="img-choice" onclick="selectIcon(this, '🏬')">🏬</div>
+          <div class="img-choice" onclick="selectIcon(this, '🏛️')">🏛️</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="addProperty()">نشر العقار</button>
+      <button class="btn-outline" onclick="closeModal('add-prop-modal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT MODAL -->
+<div class="modal-overlay" id="chat-modal">
+  <div class="modal" style="max-width:600px;padding:0;display:flex;flex-direction:column">
+    <button class="modal-close" onclick="closeModal('chat-modal')">✕</button>
+    <div style="padding:32px;padding-bottom:0">
+      <div class="chat-header">
+        <div class="chat-prop-info">
+          <div class="chat-prop-title" id="chat-prop-title">اسم العقار</div>
+          <div class="chat-prop-details">
+            <span id="chat-prop-price">السعر</span> • <span id="chat-prop-contact">0501234567</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="chat-owner-section">
+        <div class="chat-owner-label">تحدث مع المؤجر</div>
+        <div class="chat-owner-name" id="chat-owner-name">المؤجر</div>
+      </div>
+    </div>
+    
+    <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0 32px">
+      <div class="chat-messages" id="chat-messages"></div>
+    </div>
+    
+    <div style="padding:32px;padding-top:16px;border-top:1px solid var(--border2)">
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+        <button onclick="sendChatMessage()">إرسال</button>
+      </div>
+      
+      <div class="chat-action-buttons">
+        <button onclick="openWhatsApp(document.getElementById('chat-prop-contact').textContent)">📱 واتساب</button>
+        <button onclick="showToast('يمكنك الاتصال بالرقم المعروض أعلاه')">📞 اتصال</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="max-width:800px">
+    <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
