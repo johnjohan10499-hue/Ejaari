@@ -1,0 +1,84 @@
+/* =========================================
+   EJAARI - style.css
+   ========================================= */
+:root {
+  --bg:#0c0f14;
+  --bg2:#131720;
+  --bg3:#1a2030;
+  --card:#1e2535;
+  --card2:#252d40;
+  --gold:#c9a84c;
+  --gold2:#e8c46a;
+  --gold-dim:rgba(201,168,76,0.12);
+  --text:#e8eaf0;
+  --text2:#9aa3b8;
+  --text3:#6b7490;
+  --border:rgba(201,168,76,0.15);
+  --border2:rgba(255,255,255,0.06);
+  --green:#34c98e;
+  --red:#e85c5c;
+  --blue:#5c9ce8;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 8px 40px rgba(0,0,0,0.5);
+  --shadow-gold:0 4px 24px rgba(201,168,76,0.2);
+}
+
+[data-lang="en"] { font-family: 'Outfit', sans-serif; direction: ltr; }
+[data-lang="ar"] { font-family: 'Tajawal', sans-serif; direction: rtl; }
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background: var(--bg); color: var(--text); min-height: 100vh; font-family: 'Tajawal', sans-serif; direction: rtl; overflow-x: hidden; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+/* Buttons */
+.btn-primary { padding: 9px 22px; border-radius: 10px; cursor: pointer; background: var(--gold); border: none; color: var(--bg); font-weight: 700; font-size: 14px; transition: all 0.2s; font-family: inherit; }
+.btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: var(--shadow-gold); }
+.btn-outline { padding: 9px 22px; border-radius: 10px; cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--gold); font-weight: 600; font-size: 14px; transition: all 0.2s; font-family: inherit; }
+.btn-outline:hover { background: var(--gold-dim); }
+.btn-sm { flex: 1; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; text-align: center; border: none; }
+.btn-sm-primary { background: var(--gold); color: var(--bg); }
+.btn-sm-primary:hover { background: var(--gold2); }
+.btn-sm-outline { background: none; border: 1px solid var(--border2); color: var(--text2); }
+.btn-sm-outline:hover { border-color: var(--gold); color: var(--gold); }
+.btn-sm-danger { background: var(--red); color: #fff; border: none; }
+
+/* Media preview */
+.media-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 12px; }
+.media-thumb { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; }
+.media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; }
+.media-thumb .remove-media { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: var(--red); border: none; border-radius: 50%; color: white; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--gold); border-radius: 12px; padding: 14px 24px; font-size: 14px; z-index: 9999; display: none; }
+.toast.show { display: block; animation: toastIn 0.3s ease; }
+@keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(20px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+/* Form inputs */
+input, select, textarea { font-family: inherit; }
+
+/* ===== CHECKBOX GRID ===== */
+.checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 8px; }
+.check-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; cursor: pointer; transition: all 0.2s; font-size: 14px; color: var(--text2); user-select: none; }
+.check-item:hover { border-color: var(--gold); color: var(--text); }
+.check-item input[type="checkbox"] { display: none; }
+.check-box { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--border2); background: var(--bg2); flex-shrink: 0; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+.check-item input[type="checkbox"]:checked ~ .check-box { background: var(--gold); border-color: var(--gold); }
+.check-item input[type="checkbox"]:checked ~ .check-box::after { content: '✓'; font-size: 11px; color: var(--bg); font-weight: 900; }
+.check-item:has(input:checked) { border-color: var(--gold); background: var(--gold-dim); color: var(--text); }
+
+/* ===== STATUS BADGE & TOGGLE ===== */
+.prop-status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 100px; font-size: 12px; font-weight: 700; }
+.prop-status-badge.available { background: rgba(52,201,142,0.15); color: var(--green); border: 1px solid rgba(52,201,142,0.3); }
+.prop-status-badge.rented { background: rgba(232,92,92,0.15); color: var(--red); border: 1px solid rgba(232,92,92,0.3); }
+.status-toggle-wrap { display: flex; align-items: center; gap: 10px; }
+.status-toggle { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+.status-toggle input { display: none; }
+.status-track { display: block; width: 48px; height: 26px; border-radius: 13px; background: var(--red); cursor: pointer; transition: background 0.3s; position: relative; }
+.status-thumb { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.3s; }
+.status-toggle input:checked + .status-track { background: var(--green); }
+.status-toggle input:checked + .status-track .status-thumb { transform: translateX(-22px); }
