@@ -1398,9 +1398,9 @@ async function handleChangePw() {
 //  5️⃣  ضع القيم الثلاثة في المتغيرات أدناه واحفظ الملف
 // ==================================================================
 
-const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // ← مثال: service_abc123
-const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // ← مثال: template_xyz789
-const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // ← مثال: xK9_AbCdEfGhIjKl
+const EMAILJS_SERVICE_ID  = 'Ejaari';   // ← مثال: service_abc123
+const EMAILJS_TEMPLATE_ID = 'template_2ugwfmo';  // ← مثال: template_xyz789
+const EMAILJS_PUBLIC_KEY  = 'q_yte1XPrORYI1UPw';   // ← مثال: xK9_AbCdEfGhIjKl
 
 // هل EmailJS مضبوط؟ يُتحقق تلقائياً
 const EMAILJS_CONFIGURED = (
